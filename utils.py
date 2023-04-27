@@ -11,12 +11,14 @@ __all__ = ['mkdir', 'touch_file', 'write_file']
 from typing import Union
 from pathlib import Path
 
+ROOT_FOLDER = './downloads'
+
 
 def mkdir(path: Union[str, Path]) -> Path:
-    p = Path(path)
+    p = Path(f'{ROOT_FOLDER}/{path}/audios')
     p.mkdir(parents=True, exist_ok=True)
 
-    return p
+    return Path(f'{ROOT_FOLDER}/{path}')
 
 
 def touch_file(path: Union[str, Path]) -> Path:
@@ -32,5 +34,3 @@ def write_file(path: Union[str, Path], content: str, mode: str = 'w') -> Path:
         f.write(content)
 
     return p
-
-

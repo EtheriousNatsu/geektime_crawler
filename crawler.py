@@ -10,9 +10,11 @@ __all__ = ['Crawler']
 
 import asyncio
 import logging
+import requests
 
 from geektime import GeekTime
 from utils import mkdir, write_file
+from pathlib import Path
 
 logger = logging.getLogger()
 
@@ -32,16 +34,18 @@ class Crawler:
         return products
 
     async def handling_product(self, product: dict):
-        if product['type'] == 'c1':
+        if product['type'] == 'c1' and product['title'] == '程序员的数学基础课':
             await self._handling_c1(product)
         elif product['type'] == 'c3':
-            logging.info('Do not support video download, reason is: geek use HMAC-SHA1')
+            logging.info(
+                'Do not support video download, reason is: geek use HMAC-SHA1')
 
     async def _handling_c1(self, product: dict):
         articles_resp = await self._geek_time.fetch_column_articles(product['id'])
         articles_json = await articles_resp.json()
         for article_info in articles_json['data']['list']:
-            await asyncio.sleep(self.delay)
+            # await asyncio.sleep(self.delay)
+            await asyncio.sleep(5)
             article_resp = await self._geek_time.fetch_article(article_info['id'])
             article_json = await article_resp.json()
 
@@ -51,27 +55,41 @@ class Crawler:
     def generate_article_markdown(product: dict, article: dict) -> None:
         p_id = product['id']
         a_id = article['id']
-        dir_name = product['title'].strip().replace('/', '')  # Path urljoin() bug
-        file_name = article['article_title'].strip().replace('/', '')  # Path urljoin() bug
+        dir_name = product['title'].strip().replace(
+            '/', '')  # Path urljoin() bug
+        file_name = article['article_title'].strip().replace(
+            '/', '')  # Path urljoin() bug
         audio = article['audio_download_url']
         content = article['article_content']
         dir_path = mkdir(dir_name)
         file_path = dir_path.resolve().joinpath(file_name).with_suffix('.md')
 
-        logger.info(f'Start generate markdown, product id={p_id}, article id={a_id}, file path: {file_path!s}')
+        logger.info(
+            f'Start generate markdown, product id={p_id}, article id={a_id}, file path: {file_path!s}')
         try:
             if audio:
-                audio_content = f'<audio title="{file_name}" src="{audio}" controls="controls"></audio> \n'
+                mp3_name = audio[audio.rfind("/")+1:]
+                audio_path = dir_path.resolve().joinpath(f'audios/{mp3_name}')
+                Crawler.download_audio(audio, audio_path)
+                audio_content = f'<audio title="{file_name}" src="./audios/{mp3_name}" controls="controls"></audio> \n'
                 write_file(file_path, audio_content)
             write_file(file_path, content, 'a')
         except Exception as e:
-            logger.error(f'Err generate markdown, product id={p_id}, article id={a_id}')
+            logger.error(
+                f'Err generate markdown, product id={p_id}, article id={a_id}')
             raise e
         else:
-            logger.info(f'Succeed generate markdown, product id={p_id}, article id={a_id}')
+            logger.info(
+                f'Succeed generate markdown, product id={p_id}, article id={a_id}')
 
     def generate_article_video(self):
         pass
+
+    @staticmethod
+    def download_audio(mp3_url: str, audio_path: Path):
+        doc = requests.get(mp3_url)
+        with audio_path.resolve().open('wb') as f:
+            f.write(doc.content)
 
     async def end(self) -> None:
         await self._geek_time.close()
