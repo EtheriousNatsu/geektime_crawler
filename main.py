@@ -7,6 +7,7 @@
 @desc:
 """
 import asyncio
+import getpass
 import logging
 
 from crawler import Crawler
@@ -40,8 +41,8 @@ async def main(phone: str, password: str) -> None:
 
 
 if __name__ == '__main__':
-    cellphone = input('Please input cellphone:\n')
-    pwd = input('Please input password:\n')
+    cellphone = input('Please input cellphone: ')
+    pwd = getpass.getpass('Please input password: ')
 
     asyncio.run(main(cellphone, pwd))
 

@@ -10,19 +10,25 @@ __all__ = ['Crawler']
 
 import asyncio
 import logging
+from pathlib import Path
+import aiohttp
+
 import requests
 
 from geektime import GeekTime
 from utils import mkdir, write_file
-from pathlib import Path
 
 logger = logging.getLogger()
+
+TITLES = [
+    '程序员的数学基础课'
+]
 
 
 class Crawler:
     def __init__(self, phone: str, pwd: str):
         self._geek_time = GeekTime(phone, pwd)
-        self.delay = 10  # Rate limit
+        self.delay = 5  # Rate limit
 
     async def start(self) -> list:
         await self._geek_time.login()
@@ -30,11 +36,11 @@ class Crawler:
         products_json = await products_resp.json()
         products = products_json['data']['products']
 
-        self.delay = len(products) * 10  # Rate limit
+        # self.delay = len(products) * 10  # Rate limit
         return products
 
     async def handling_product(self, product: dict):
-        if product['type'] == 'c1' and product['title'] == '程序员的数学基础课':
+        if product['type'] == 'c1' and product['title'] in TITLES:
             await self._handling_c1(product)
         elif product['type'] == 'c3':
             logging.info(
@@ -44,15 +50,14 @@ class Crawler:
         articles_resp = await self._geek_time.fetch_column_articles(product['id'])
         articles_json = await articles_resp.json()
         for article_info in articles_json['data']['list']:
-            # await asyncio.sleep(self.delay)
-            await asyncio.sleep(5)
+            await asyncio.sleep(self.delay)
             article_resp = await self._geek_time.fetch_article(article_info['id'])
             article_json = await article_resp.json()
 
-            self.generate_article_markdown(product, article_json['data'])
+            await self.generate_article_markdown(product, article_json['data'])
 
     @staticmethod
-    def generate_article_markdown(product: dict, article: dict) -> None:
+    async def generate_article_markdown(product: dict, article: dict) -> None:
         p_id = product['id']
         a_id = article['id']
         dir_name = product['title'].strip().replace(
@@ -70,7 +75,7 @@ class Crawler:
             if audio:
                 mp3_name = audio[audio.rfind("/")+1:]
                 audio_path = dir_path.resolve().joinpath(f'audios/{mp3_name}')
-                Crawler.download_audio(audio, audio_path)
+                await Crawler.download_audio(audio, audio_path)
                 audio_content = f'<audio title="{file_name}" src="./audios/{mp3_name}" controls="controls"></audio> \n'
                 write_file(file_path, audio_content)
             write_file(file_path, content, 'a')
@@ -86,10 +91,15 @@ class Crawler:
         pass
 
     @staticmethod
-    def download_audio(mp3_url: str, audio_path: Path):
-        doc = requests.get(mp3_url)
-        with audio_path.resolve().open('wb') as f:
-            f.write(doc.content)
+    async def download_audio(mp3_url: str, audio_path: Path):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(mp3_url) as response:
+                with audio_path.resolve().open('wb') as f:
+                    while True:
+                        chunk = await response.content.read(1024)
+                        if not chunk:
+                            break
+                        f.write(chunk)
 
     async def end(self) -> None:
         await self._geek_time.close()

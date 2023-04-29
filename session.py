@@ -31,7 +31,7 @@ async def on_request_start(
     request method: {params.method}
     request headers:\n {params.headers}
     '''
-    logger.info(msg)
+    logger.debug(msg)
 
 
 async def on_request_end(
@@ -47,7 +47,7 @@ async def on_request_end(
     response headers:\n {resp.headers}
     response body:\n {text}
     '''
-    logger.info(msg)
+    logger.debug(msg)
 
 
 class Session:
