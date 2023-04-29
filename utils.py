@@ -15,10 +15,10 @@ ROOT_FOLDER = './downloads'
 
 
 def mkdir(path: Union[str, Path]) -> Path:
-    p = Path(f'{ROOT_FOLDER}/{path}/audios')
+    p = Path(f'{ROOT_FOLDER}/{path}')
     p.mkdir(parents=True, exist_ok=True)
 
-    return Path(f'{ROOT_FOLDER}/{path}')
+    return p
 
 
 def touch_file(path: Union[str, Path]) -> Path:

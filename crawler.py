@@ -11,9 +11,8 @@ __all__ = ['Crawler']
 import asyncio
 import logging
 from pathlib import Path
-import aiohttp
 
-import requests
+import aiohttp
 
 from geektime import GeekTime
 from utils import mkdir, write_file
@@ -49,43 +48,41 @@ class Crawler:
     async def _handling_c1(self, product: dict):
         articles_resp = await self._geek_time.fetch_column_articles(product['id'])
         articles_json = await articles_resp.json()
+
+        title = product['title'].strip().replace('/', '')
+        title_path = mkdir(title)
+        audio_path = mkdir(f"{title}/audios")
         for article_info in articles_json['data']['list']:
             await asyncio.sleep(self.delay)
             article_resp = await self._geek_time.fetch_article(article_info['id'])
             article_json = await article_resp.json()
 
-            await self.generate_article_markdown(product, article_json['data'])
+            await self.generate_article_markdown(title, title_path, audio_path, article_json['data'])
 
     @staticmethod
-    async def generate_article_markdown(product: dict, article: dict) -> None:
-        p_id = product['id']
-        a_id = article['id']
-        dir_name = product['title'].strip().replace(
-            '/', '')  # Path urljoin() bug
-        file_name = article['article_title'].strip().replace(
-            '/', '')  # Path urljoin() bug
+    async def generate_article_markdown(title: str, title_path: Path, audio_path: Path, article: dict) -> None:
+        file_name = article['article_title'].strip().replace('/', '')
         audio = article['audio_download_url']
         content = article['article_content']
-        dir_path = mkdir(dir_name)
-        file_path = dir_path.resolve().joinpath(file_name).with_suffix('.md')
+        file_path = title_path.resolve().joinpath(file_name).with_suffix('.md')
 
         logger.info(
-            f'Start generate markdown, product id={p_id}, article id={a_id}, file path: {file_path!s}')
+            f'start generate markdown, {title}, article={file_name}, file path: {file_path!s}')
         try:
             if audio:
                 mp3_name = audio[audio.rfind("/")+1:]
-                audio_path = dir_path.resolve().joinpath(f'audios/{mp3_name}')
-                await Crawler.download_audio(audio, audio_path)
+                audio_file_name = audio_path.resolve().joinpath(f'{mp3_name}')
+                await Crawler.download_audio(audio, audio_file_name)
                 audio_content = f'<audio title="{file_name}" src="./audios/{mp3_name}" controls="controls"></audio> \n'
                 write_file(file_path, audio_content)
             write_file(file_path, content, 'a')
         except Exception as e:
             logger.error(
-                f'Err generate markdown, product id={p_id}, article id={a_id}')
+                f'err {title}, article={file_name}')
             raise e
         else:
             logger.info(
-                f'Succeed generate markdown, product id={p_id}, article id={a_id}')
+                f'succeed {title}, article={file_name}')
 
     def generate_article_video(self):
         pass
