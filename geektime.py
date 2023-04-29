@@ -121,7 +121,7 @@ class GeekTime:
             'last_learn': 0,
             'learn_status': 0,
             'prev': 0,
-            'size': 20,
+            'size': 50,
             'sort': 1,
             'type': '',
             'with_learn_count': 1
