@@ -25,7 +25,7 @@ logger = logging.getLogger()
 
 def print_menu(audio_products):
     _ = os.system('clear')
-    print("------您的极客时间音频专栏列表：")
+    print("------极客时间音频专栏列表：")
     for i, course in enumerate(audio_products):
         print(f"{i+1}. {course['title']}")
 
@@ -74,7 +74,7 @@ async def main(phone: str, password: str, mode: str) -> None:
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-m", "--mode", help="options: all or select",
+parser.add_argument("-m", "--mode", help="options: all or select, all: download all audio courses, select: select one audio course once",
                     type=str, choices=['all', 'select'], default='select')
 
 if __name__ == '__main__':
